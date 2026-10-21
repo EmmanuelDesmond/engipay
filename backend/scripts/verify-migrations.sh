@@ -31,9 +31,14 @@ apply_migrations() {
 
 capture_schema() {
   local target_db="$1"
+  # pg_dump writes two psql meta-commands around the dump, and the token in
+  # each one is random, so two dumps of the same schema never match. They
+  # carry no schema, so they are dropped before the comparison.
   docker compose exec -T postgres \
     pg_dump --schema-only -U "${POSTGRES_USER:-engipay}" "$target_db" 2>/dev/null \
     | grep -v '^--' \
+    | grep -v -F '\restrict' \
+    | grep -v -F '\unrestrict' \
     | grep -v '^$'
 }
 
